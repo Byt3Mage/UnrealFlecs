@@ -30,10 +30,7 @@ struct FlecsTransformUtils
 };
 
 
-
-
 REG_FLECS_COMPONENT(FFlecsAttachedTo)
-
 USTRUCT(BlueprintType)
 struct FFlecsAttachedTo
 {
@@ -44,10 +41,10 @@ struct FFlecsAttachedTo
 	const FTransform& Get() const { return Value; }
 	
 private:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	FName Socket = NAME_None;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	FTransform Value = FTransform::Identity;
 
 	friend struct FFlecsTransform;
@@ -65,7 +62,7 @@ struct FFlecsTransform
 	const FTransform& Get() const { return Value; }
 	
 private:
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	FTransform Value = FTransform::Identity;
 
 	friend struct FFlecsAttachedTo;
