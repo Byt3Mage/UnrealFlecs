@@ -7,6 +7,8 @@
 #include "FlecsEntityHandle.h"
 #include "FlecsEntityPrefab.generated.h"
 
+struct FFlecsPrefabRegistry;
+
 UCLASS(Abstract, BlueprintType)
 class UNREALFLECS_API UFlecsEntityPrefab : public UPrimaryDataAsset
 {
@@ -19,18 +21,12 @@ protected:
 public:
 	virtual void SetInstanceComponents(flecs::entity& Entity) const {}
 	
-	flecs::entity CreateInstance(const flecs::world& FlecsWorld) const;
+	flecs::entity CreateInstance(const flecs::world& FlecsWorld, FFlecsPrefabRegistry& Registry) const;
 
-	TArray<flecs::entity> BatchCreateInstances(const flecs::world& FlecsWorld, const int32 Count,
-		const FTransform& Transform, const bool bWithTransform) const;
+	TArray<flecs::entity> BatchCreateInstances(const flecs::world& FlecsWorld, FFlecsPrefabRegistry& Registry, int32 Count) const;
 
-	TArray<FFlecsEntityHandle> BatchCreateInstanceHandles(const flecs::world& FlecsWorld,
-		const int32 Count, const FTransform& Transform, const bool bWithTransform) const;
-
-	TArray<flecs::entity> BatchCreateWithTransforms(const flecs::world& FlecsWorld, const TArray<FTransform>& Transforms) const;
-
-	TArray<FFlecsEntityHandle> BatchCreateHandlesWithTransforms(const flecs::world& FlecsWorld, const TArray<FTransform>& Transforms) const;
-
+	TArray<FFlecsEntityHandle> BatchCreateInstanceHandles(const flecs::world& FlecsWorld, FFlecsPrefabRegistry& Registry, const int32 Count) const;
+	
 protected:
 	virtual flecs::entity CreatePrefab(const flecs::world& FlecsWorld) const
 	{
@@ -55,12 +51,9 @@ struct FFlecsPrefabRegistry
 	using FAssetHandle = TSoftObjectPtr<const UFlecsEntityPrefab>;
 	using FPrefabMap = TMap<FAssetHandle, flecs::entity>;
 
-	FFlecsPrefabRegistry() = default;
-	
-	FFlecsPrefabRegistry(const int32 ReserveAmount = 1000)
+	FFlecsPrefabRegistry()
 	{
-		// Arbitrary number to account for total number of assets. Adjust as needed.
-		Prefabs.Reserve(ReserveAmount);
+		Prefabs.Reserve(1000);
 	}
 	
 	flecs::entity GetOrCreatePrefab(const flecs::world& FlecsWorld, const UFlecsEntityPrefab* Asset)
