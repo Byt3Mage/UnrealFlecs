@@ -25,16 +25,10 @@ public class UnrealFlecs : ModuleRules
 		//The path for the source files
 		PrivateIncludePaths.AddRange(new string[] {Path.Combine(ModuleDirectory, "Private")});
 
-		if (Target.bBuildEditor)
-		{
-			PrivateDefinitions.Add("flecs_EXPORTS");
-		}
-		else
-		{
-			PublicDefinitions.Add("flecs_EXPORTS");
-		}
+		PrivateDefinitions.Add("flecs_EXPORTS");
 		
 		PublicDefinitions.Add("FLECS_CPP_NO_AUTO_REGISTRATION = 1");
+		//PublicDefinitions.Add("FLECS_NO_OS_API_IMPL = 1");
 		
 		
 		if (Target.Configuration < UnrealTargetConfiguration.Test)

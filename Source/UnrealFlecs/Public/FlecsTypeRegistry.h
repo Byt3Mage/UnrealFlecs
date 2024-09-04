@@ -7,10 +7,10 @@
 
 struct UNREALFLECS_API FFlecsTypeRegistry
 {
-	using RegisterFn = TFunctionRef<void (const flecs::world&)>;
-	using SetFn = TFunctionRef<void (flecs::entity&, const FConstStructView)>;
-	using AddFn = TFunctionRef<void (flecs::entity&)>;
-	using IDFn = TFunctionRef<flecs::id (const flecs::world&)>;
+	using RegisterFn = TFunction<void (const flecs::world&)>;
+	using SetFn = TFunction<void (flecs::entity&, const FConstStructView)>;
+	using AddFn = TFunction<void (flecs::entity&)>;
+	using IDFn = TFunction<flecs::id (const flecs::world&)>;
 	
 	static FFlecsTypeRegistry& Get()
 	{
@@ -22,22 +22,22 @@ struct UNREALFLECS_API FFlecsTypeRegistry
 	
 	void AddRegisterFn(RegisterFn Func)
 	{
-		RegisterFns.Add(Func);
+		RegisterFns.Emplace(Func);
 	}
 	
 	void AddEntitySetFn(const UScriptStruct* Type, SetFn Func)
 	{
-		EntitySetFns.Add(Type, Func);
+		EntitySetFns.Emplace(Type, Func);
 	}
 
 	void AddEntityAddFn(const UScriptStruct* Type, AddFn Func)
 	{
-		EntityAddFns.Add(Type, Func);
+		EntityAddFns.Emplace(Type, Func);
 	}
 
 	void AddComponentID(const UScriptStruct* Type, IDFn Func)
 	{
-		ComponentIDs.Add(Type, Func);
+		ComponentIDs.Emplace(Type, Func);
 	}
 
 	SetFn* FindSetFn(const UScriptStruct* Type)

@@ -85,6 +85,11 @@ struct FFlecsEntityHandle
 	{
 		return flecs::entity(FlecsWorld, Value).has<First, Second>();
 	}
+
+	flecs::world World() const
+	{
+		return flecs::world(FlecsWorld);
+	}
 	
 private:
 	UPROPERTY()

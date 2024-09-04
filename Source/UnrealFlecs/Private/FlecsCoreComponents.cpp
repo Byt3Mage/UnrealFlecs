@@ -1,36 +1,35 @@
 ﻿#include "FlecsCoreComponents.h"
+#include "FlecsUtils.h"
 
 void FlecsTransformUtils::PropagateTransformUpdates(TransformQuery& Query, const flecs::entity& Parent)
 {
 	Query.set_group(Parent)
 	.each([&Query](const flecs::entity child, const FFlecsTransform& parent_transform,
-		const FFlecsAttachedTo& local_transform, FFlecsTransform& child_transform)
+		const FFlecsAttachedTo& attachment, FFlecsTransform& child_transform)
 	{
-		child_transform.Value = local_transform.Value * parent_transform.Value;
+		child_transform.Value = attachment.Value * parent_transform.Value;
 		PropagateTransformUpdates(Query, child);
 	});
 }
 
 void FlecsTransformUtils::SetLocalTransform(TransformQuery& Query, const flecs::entity& Entity, const FTransform& NewTransform)
 {
-	flecs::entity Parent = Entity.target<FFlecsAttachedTo>();
+	auto[parent, attachment] = flecs_utils::get_pair_mut<FFlecsAttachedTo>(Entity);
 	
-	auto* attachment = Entity.get_mut<FFlecsAttachedTo>(Parent);
-	auto* parent_transform = Parent.get<FFlecsTransform>();
-	
-	if (attachment && parent_transform)
+	if (attachment)
 	{
+		auto* parent_transform = parent.get<FFlecsTransform>();
 		attachment->Value = NewTransform;
 
 		// Update global transform
-		if (auto* global_transform = Entity.get_mut<FFlecsAttachedTo>())
+		if (auto* global_transform = Entity.get_mut<FFlecsTransform>())
 		{
 			global_transform->Value = NewTransform * parent_transform->Value;
 			PropagateTransformUpdates(Query, Entity);
 		}
 	}
-	// No local transform found, set global instead
-	else if (auto* global_transform = Entity.get_mut<FFlecsAttachedTo>())
+	// No local transform found, set global if available
+	else if (auto* global_transform = Entity.get_mut<FFlecsTransform>())
 	{
 		global_transform->Value = NewTransform;
 		PropagateTransformUpdates(Query, Entity);
@@ -45,18 +44,11 @@ void FlecsTransformUtils::SetGlobalLocation(TransformQuery& Query, const flecs::
 	}
 }
 
-void FlecsTransformUtils::SetGlobalLocation(TransformQuery& Query, const flecs::entity& Entity, Global& Transform, const FVector& NewLocation)
+void FlecsTransformUtils::SetGlobalLocation(TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform, const FVector& NewLocation)
 {
 	Transform.Value.SetTranslation(NewLocation);
 	PropagateTransformUpdates(Query, Entity);
-
-	// update local transform
-	if (flecs::entity Parent = Entity.target<FFlecsAttachedTo>())
-	{
-		auto* attachment = Entity.get_mut<FFlecsAttachedTo>(Parent);
-		auto* parent_transform = Parent.get<FFlecsTransform>();
-		attachment->Value = Transform.Value.GetRelativeTransform(parent_transform->Value);
-	}
+	UpdateLocalTransform(Entity, Transform.Value);
 }
 
 void FlecsTransformUtils::SetGlobalRotation(TransformQuery& Query, const flecs::entity& Entity, const FQuat& NewRotation)
@@ -67,18 +59,11 @@ void FlecsTransformUtils::SetGlobalRotation(TransformQuery& Query, const flecs::
 	}
 }
 
-void FlecsTransformUtils::SetGlobalRotation(TransformQuery& Query, const flecs::entity& Entity, Global& Transform, const FQuat& NewRotation)
+void FlecsTransformUtils::SetGlobalRotation(TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform, const FQuat& NewRotation)
 {
 	Transform.Value.SetRotation(NewRotation);
 	PropagateTransformUpdates(Query, Entity);
-
-	// update local transform
-	if (flecs::entity Parent = Entity.target<FFlecsAttachedTo>())
-	{
-		auto* attachment = Entity.get_mut<FFlecsAttachedTo>(Parent);
-		auto* parent_transform = Parent.get<FFlecsTransform>();
-		attachment->Value = Transform.Value.GetRelativeTransform(parent_transform->Value);
-	}
+	UpdateLocalTransform(Entity, Transform.Value);
 }
 
 void FlecsTransformUtils::SetGlobalTransform(TransformQuery& Query, const flecs::entity& Entity, const FTransform& NewTransform)
@@ -89,46 +74,52 @@ void FlecsTransformUtils::SetGlobalTransform(TransformQuery& Query, const flecs:
 	}
 }
 
-void FlecsTransformUtils::SetGlobalTransform(TransformQuery& Query, const flecs::entity& Entity, Global& Transform, const FTransform& NewTransform)
+void FlecsTransformUtils::SetGlobalTransform(TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform, const FTransform& NewTransform)
 {
 	Transform.Value = NewTransform;
 	PropagateTransformUpdates(Query, Entity);
-
-	// update local transform
-	if (flecs::entity Parent = Entity.target<FFlecsAttachedTo>())
-	{
-		auto* attachment = Entity.get_mut<FFlecsAttachedTo>(Parent);
-		auto* parent_transform = Parent.get<FFlecsTransform>();
-		attachment->Value = Transform.Value.GetRelativeTransform(parent_transform->Value);
-	}
+	UpdateLocalTransform(Entity, Transform.Value);
 }
 
-void FlecsTransformUtils::SetGlobalLocationAndRotation(TransformQuery& Query, const flecs::entity& Entity, Global& Transform,
+void FlecsTransformUtils::SetLocationAndRotation(TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform,
 	const FVector& NewLocation, const FQuat& NewRotation)
 {
 	Transform.Value.SetTranslation(NewLocation);
 	Transform.Value.SetRotation(NewRotation);
 	PropagateTransformUpdates(Query, Entity);
-
-	// update local transform
-	if (flecs::entity Parent = Entity.target<FFlecsAttachedTo>())
-	{
-		auto* attachment = Entity.get_mut<FFlecsAttachedTo>(Parent);
-		auto* parent_transform = Parent.get<FFlecsTransform>();
-		attachment->Value = Transform.Value.GetRelativeTransform(parent_transform->Value);
-	}
+	UpdateLocalTransform(Entity, Transform.Value);
 }
 
-void FlecsTransformUtils::AddGlobalOffset(TransformQuery& Query, const flecs::entity& Entity, Global& Transform, const FVector& Offset)
+void FlecsTransformUtils::AddGlobalOffset(TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform, const FVector& Offset)
 {
 	Transform.Value.AddToTranslation(Offset);
 	PropagateTransformUpdates(Query, Entity);
+	UpdateLocalTransform(Entity, Transform.Value);
+}
 
-	// update local transform
-	if (flecs::entity Parent = Entity.target<FFlecsAttachedTo>())
+void FlecsTransformUtils::AttachEntityTo(TransformQuery& Query, const flecs::entity& Entity, const flecs::entity& Parent,
+	const FTransform& RelativeTransform)
+{
+	auto* child_transform = Entity.get_mut<FFlecsTransform>();
+	auto* parent_transform = Parent.get<FFlecsTransform>();
+	
+	if (child_transform && parent_transform)
 	{
-		auto* attachment = Entity.get_mut<FFlecsAttachedTo>(Parent);
-		auto* parent_transform = Parent.get<FFlecsTransform>();
-		attachment->Value = Transform.Value.GetRelativeTransform(parent_transform->Value);
+		FFlecsAttachedTo& attachment = flecs_utils::ensure_component<FFlecsAttachedTo>(Entity, Parent);
+		attachment.Value = RelativeTransform;
+		child_transform->Value = RelativeTransform * parent_transform->Value;
+		PropagateTransformUpdates(Query, Entity);
+	}
+}
+
+void FlecsTransformUtils::UpdateLocalTransform(const flecs::entity& Entity, const FTransform& Transform)
+{
+	auto[parent, attachment] = flecs_utils::get_pair_mut<FFlecsAttachedTo>(Entity);
+	
+	if (attachment)
+	{
+		// TODO: Consider handling missing parent transform
+		auto* parent_transform = parent.get<FFlecsTransform>();
+		attachment->Value = Transform.GetRelativeTransform(parent_transform->Value);
 	}
 }
