@@ -5,6 +5,13 @@
 namespace flecs_utils
 {
 	template <typename T>
+	struct flecs_pair_result
+	{
+		flecs::entity m_entity;
+		T* m_component;
+	};
+	
+	template <typename T>
 	T& ensure_component(const flecs::entity& entity)
 	{
 		flecs::world_t* flecs_world = entity.world().c_ptr();
@@ -25,7 +32,7 @@ namespace flecs_utils
 	}
 
 	template<typename First>
-	std::tuple<flecs::entity, const First*> get_pair(const flecs::entity& entity)
+	flecs_pair_result<const First> get_pair(const flecs::entity& entity)
 	{
 		flecs::world flecs_world = entity.world();
 		flecs::table_range r = entity.range();
@@ -44,13 +51,12 @@ namespace flecs_utils
 	}
 
 	template<typename First>
-	std::tuple<flecs::entity, First*> get_pair_mut(const flecs::entity& entity)
+	flecs_pair_result<First> get_pair_mut(const flecs::entity& entity)
 	{
 		flecs::world flecs_world = entity.world();
 		flecs::table_range r = entity.range();
 		flecs::id_t pair_out;
-		int index = -1;
-			//ecs_search(flecs_world, r, flecs_world.pair<First>(flecs::Wildcard), &pair_out);
+		int index = ecs_search(flecs_world, r, flecs_world.pair<First>(flecs::Wildcard), &pair_out);
 
 		if (index != -1)
 		{
