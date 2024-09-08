@@ -25,7 +25,7 @@ struct FFlecsAssortedComponents : public FFlecsArchetypeBase
 	{
 		for (const FInstancedStruct& Comp : Components)
 		{
-			if (auto* Fn = FFlecsTypeRegistry::Get().FindSetFn(Comp.GetScriptStruct()))
+			if (auto* Fn = FFlecsTypeRegistry::Get().find_set_fn(Comp.GetScriptStruct()))
 			{
 				(*Fn)(Entity, Comp);
 			}
@@ -45,7 +45,7 @@ struct FFlecsAssortedTags : public FFlecsArchetypeBase
 	{
 		for (const auto& Tag : Tags)
 		{
-			if (auto* Fn = FFlecsTypeRegistry::Get().FindAddFn(Tag))
+			if (auto* Fn = FFlecsTypeRegistry::Get().find_add_fn(Tag))
 			{
 				(*Fn)(Entity);
 			}

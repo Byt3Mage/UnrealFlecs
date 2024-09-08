@@ -34,38 +34,42 @@ namespace flecs_utils
 	template<typename First>
 	flecs_pair_result<const First> get_pair(const flecs::entity& entity)
 	{
-		flecs::world flecs_world = entity.world();
+		flecs::world_t* flecs_world = const_cast<flecs::world_t*>(ecs_get_world(entity.world()));;
 		flecs::table_range r = entity.range();
+		flecs::id_t comp_id = flecs::_::type<First>::id(flecs_world);
 		flecs::id_t pair_out;
-		int index = ecs_search(flecs_world, r, flecs_world.pair<First>(flecs::Wildcard), &pair_out);
-
+		int index = ecs_search(flecs_world, r, ecs_pair(comp_id, flecs::Wildcard), &pair_out);
+		
 		if (index != -1)
 		{
-			flecs::entity second = flecs_world.id(pair_out).second();
+			flecs::entity_t second = ECS_PAIR_SECOND(pair_out);
+			index = ecs_table_type_to_column_index(r, index);
 			const First* component = static_cast<First*>(r.get_column(index));
-
-			return {second, component};
+			
+			return { flecs::entity(flecs_world, second), component };
 		}
 
-		return {flecs::entity(), nullptr};
+		return { flecs::entity(), nullptr };
 	}
 
 	template<typename First>
 	flecs_pair_result<First> get_pair_mut(const flecs::entity& entity)
 	{
-		flecs::world flecs_world = entity.world();
+		flecs::world_t* flecs_world = const_cast<flecs::world_t*>(ecs_get_world(entity.world()));;
 		flecs::table_range r = entity.range();
+		flecs::id_t comp_id = flecs::_::type<First>::id(flecs_world);
 		flecs::id_t pair_out;
-		int index = ecs_search(flecs_world, r, flecs_world.pair<First>(flecs::Wildcard), &pair_out);
-
+		int index = ecs_search(flecs_world, r, ecs_pair(comp_id, flecs::Wildcard), &pair_out);
+		
 		if (index != -1)
 		{
-			flecs::entity second = flecs_world.id(pair_out).second();
+			flecs::entity_t second = ECS_PAIR_SECOND(pair_out);
+			index = ecs_table_type_to_column_index(r, index);
 			First* component = static_cast<First*>(r.get_column(index));
-
-			return {second, component};
+			
+			return { flecs::entity(flecs_world, second), component };
 		}
 
-		return {flecs::entity(), nullptr};
+		return { flecs::entity(), nullptr };
 	}
 }

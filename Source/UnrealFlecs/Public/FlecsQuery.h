@@ -51,9 +51,9 @@ struct UNREALFLECS_API FFlecsQueryTerm
 	{
 		FFlecsTypeRegistry& Registry = FFlecsTypeRegistry::Get();
 
-		flecs::id CompID = Registry.FindID(Component, FlecsWorld);
-		flecs::id RelID = Registry.FindID(Relationship, FlecsWorld);
-		flecs::id ObjID = Registry.FindID(Object, FlecsWorld);
+		flecs::id CompID = Registry.find_id(Component, FlecsWorld);
+		flecs::id RelID = Registry.find_id(Relationship, FlecsWorld);
+		flecs::id ObjID = Registry.find_id(Object, FlecsWorld);
 
 		switch (Type)
 		{

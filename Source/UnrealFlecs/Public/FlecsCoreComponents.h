@@ -10,25 +10,25 @@ struct UNREALFLECS_API FlecsTransformUtils
 {
 	using TransformQuery = flecs::query<const FFlecsTransform, const FFlecsAttachedTo, FFlecsTransform>;
 	
-	static void PropagateTransformUpdates(TransformQuery& Query, const flecs::entity& Parent);
+	static void PropagateTransformUpdates(const TransformQuery& Query, const flecs::entity& Parent);
 
-	static void SetLocalTransform(TransformQuery& Query, const flecs::entity& Entity, const FTransform& NewTransform);
-	static void SetGlobalLocation(TransformQuery& Query, const flecs::entity& Entity, const FVector& NewLocation);
-	static void SetGlobalLocation(TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform, const FVector& NewLocation);
-	static void SetGlobalRotation(TransformQuery& Query, const flecs::entity& Entity, const FQuat& NewRotation);
-	static void SetGlobalRotation(TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform, const FQuat& NewRotation);
-	static void SetGlobalTransform(TransformQuery& Query, const flecs::entity& Entity, const FTransform& NewTransform);
-	static void SetGlobalTransform(TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform, const FTransform& NewTransform);
+	static void SetLocalTransform(const TransformQuery& Query, const flecs::entity& Entity, const FTransform& NewTransform);
+	static void SetGlobalLocation(const TransformQuery& Query, const flecs::entity& Entity, const FVector& NewLocation);
+	static void SetGlobalLocation(const TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform, const FVector& NewLocation);
+	static void SetGlobalRotation(const TransformQuery& Query, const flecs::entity& Entity, const FQuat& NewRotation);
+	static void SetGlobalRotation(const TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform, const FQuat& NewRotation);
+	static void SetGlobalTransform(const TransformQuery& Query, const flecs::entity& Entity, const FTransform& NewTransform);
+	static void SetGlobalTransform(const TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform, const FTransform& NewTransform);
 
-	static void SetLocationAndRotation(TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform,
+	static void SetLocationAndRotation(const TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform,
 		const FVector& NewLocation, const FQuat& NewRotation);
 	
-	static void AddGlobalOffset(TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform, const FVector& Offset);
+	static void AddGlobalOffset(const TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform, const FVector& Offset);
 	
-	static void AttachEntityTo(TransformQuery& Query, const flecs::entity& Entity, const flecs::entity& Parent, const FTransform& RelativeTransform = FTransform::Identity);
+	static void AttachEntityTo(const TransformQuery& Query, const flecs::entity& Entity, const flecs::entity& Parent, const FTransform& RelativeTransform = FTransform::Identity);
 
 private:
-	FORCEINLINE static void UpdateLocalTransform(const flecs::entity& Entity, const FTransform& Transform);
+	static void UpdateLocalTransform(const flecs::entity& Entity, const FTransform& Transform);
 };
 
 
