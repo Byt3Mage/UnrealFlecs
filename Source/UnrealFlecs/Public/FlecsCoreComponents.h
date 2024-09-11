@@ -27,7 +27,6 @@ struct UNREALFLECS_API FlecsTransformUtils
 	
 	static void AttachEntityTo(const TransformQuery& Query, const flecs::entity& Entity, const flecs::entity& Parent, const FTransform& RelativeTransform = FTransform::Identity);
 
-private:
 	static void UpdateLocalTransform(const flecs::entity& Entity, const FTransform& Transform);
 };
 
@@ -40,7 +39,8 @@ struct FFlecsAttachedTo
 	
 	GENERATED_BODY()
 
-	const FTransform& Get() const { return Value; }
+	const FTransform& get_relative_transform() const { return Value; }
+	const FName& get_socket_name() const { return Socket; }
 	
 private:
 	UPROPERTY(EditAnywhere)
@@ -61,7 +61,14 @@ struct FFlecsTransform
 	
 	GENERATED_BODY()
 
-	const FTransform& Get() const { return Value; }
+	FFlecsTransform() = default;
+
+	explicit FFlecsTransform(const FTransform& new_transform) : Value(new_transform) {}
+
+	const FTransform& get() const { return Value; }
+	FVector get_location() const { return Value.GetTranslation(); }
+	FQuat get_rotation() const { return Value.GetRotation(); }
+	FVector get_unit_axis(const EAxis::Type axis) const { return Value.GetUnitAxis(axis); }
 	
 private:
 	UPROPERTY(EditAnywhere)

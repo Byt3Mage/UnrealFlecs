@@ -4,14 +4,15 @@
 
 flecs::entity UFlecsEntityPrefab::CreateInstance(const flecs::world& FlecsWorld, FFlecsPrefabRegistry& Registry) const
 {
-	flecs::entity Entity;
+	flecs::entity Entity = FlecsWorld.entity();
 
 	if (flecs::entity Prefab = Registry.GetOrCreatePrefab(FlecsWorld, this))
 	{
 		Entity = FlecsWorld.entity().is_a(Prefab);
-		// Set overriden components
-		SetInstanceComponents(Entity);
 	}
+	
+	// Set overriden components
+	SetInstanceComponents(Entity);
 	
 	return Entity;
 }
