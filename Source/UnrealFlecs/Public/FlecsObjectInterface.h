@@ -18,6 +18,8 @@ public:
 	virtual FFlecsEntityHandle GetFlecsEntityHandle() const = 0;
 
 	virtual void SetFlecsEntityHandle(const flecs::entity& Entity) = 0;
+	
+	virtual void SetFlecsEntityHandle(const FFlecsEntityHandle& Handle) = 0;
 
 	virtual UMeshComponent* GetPrimaryMesh() = 0;
 };
