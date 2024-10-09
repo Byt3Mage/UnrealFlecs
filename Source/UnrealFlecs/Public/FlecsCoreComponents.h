@@ -30,13 +30,10 @@ struct UNREALFLECS_API FlecsTransformUtils
 	static void UpdateLocalTransform(const flecs::entity& Entity, const FTransform& Transform);
 };
 
-
-REG_FLECS_COMPONENT(FFlecsAttachedTo)
+REG_FLECS_COMPONENT_IMPL(FFlecsAttachedTo, false)
 USTRUCT(BlueprintType)
-struct FFlecsAttachedTo
+struct UNREALFLECS_API FFlecsAttachedTo
 {
-	using TransformQuery = flecs::query<const FFlecsTransform, const FFlecsAttachedTo, FFlecsTransform>;
-	
 	GENERATED_BODY()
 
 	const FTransform& get_relative_transform() const { return Value; }
@@ -48,17 +45,14 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	FTransform Value = FTransform::Identity;
-
-	friend struct FFlecsTransform;
+	
 	friend struct FlecsTransformUtils;
 };
 
-REG_FLECS_COMPONENT(FFlecsTransform)
+REG_FLECS_COMPONENT_IMPL(FFlecsTransform, false)
 USTRUCT(BlueprintType)
 struct FFlecsTransform
 {
-	using TransformQuery = flecs::query<const FFlecsTransform, const FFlecsAttachedTo, FFlecsTransform>;
-	
 	GENERATED_BODY()
 
 	FFlecsTransform() = default;
@@ -73,8 +67,7 @@ struct FFlecsTransform
 private:
 	UPROPERTY(EditAnywhere)
 	FTransform Value = FTransform::Identity;
-
-	friend struct FFlecsAttachedTo;
+	
 	friend struct FlecsTransformUtils;
 };
 

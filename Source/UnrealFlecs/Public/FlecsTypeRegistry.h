@@ -144,10 +144,11 @@ struct FRegisterFlecsComponent
 private:
 	static void RegisterComponent(const flecs::world& FlecsWorld)
 	{
+		auto component = FlecsWorld.component<T>();
+		
 		if (UseDefaultSerializer)
 		{
-			FlecsWorld.component<T>()
-			.opaque(flecs::String)
+			component.opaque(flecs::String)
 			.serialize(&FFlecsJsonSerializer<T>::UStructSerializer)
 			.assign_string(&FFlecsJsonSerializer<T>::UStructDeserializer);
 		}
