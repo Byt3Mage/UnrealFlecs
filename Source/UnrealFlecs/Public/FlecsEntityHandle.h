@@ -13,6 +13,8 @@ struct FFlecsEntityHandle
 	//FFlecsEntityHandle(const uint64 id) : Value(id), FlecsWorld(nullptr) {}
 	FFlecsEntityHandle(const flecs::entity& Entity) : Value(Entity), FlecsWorld(Entity.world()){}
 
+	static const UNREALFLECS_API FFlecsEntityHandle Null;
+
 	operator uint64() const
 	{
 		return Value;
@@ -95,5 +97,5 @@ private:
 	UPROPERTY()
 	uint64 Value = 0;
 
-	flecs::world_t* FlecsWorld;
+	flecs::world FlecsWorld;
 };

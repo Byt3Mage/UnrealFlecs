@@ -10,8 +10,8 @@ struct UNREALFLECS_API FlecsTransformUtils
 {
 	using TransformQuery = flecs::query<const FFlecsTransform, const FFlecsAttachedTo, FFlecsTransform>;
 	
-	static void PropagateTransformUpdates(const TransformQuery& Query, const flecs::entity& Parent);
-
+	static void PropagateTransformUpdate(const TransformQuery& Query, const flecs::entity& Parent);
+	
 	static void SetLocalTransform(const TransformQuery& Query, const flecs::entity& Entity, const FTransform& NewTransform);
 	static void SetGlobalLocation(const TransformQuery& Query, const flecs::entity& Entity, const FVector& NewLocation);
 	static void SetGlobalLocation(const TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform, const FVector& NewLocation);
@@ -25,9 +25,26 @@ struct UNREALFLECS_API FlecsTransformUtils
 	
 	static void AddGlobalOffset(const TransformQuery& Query, const flecs::entity& Entity, FFlecsTransform& Transform, const FVector& Offset);
 	
-	static void AttachEntityTo(const TransformQuery& Query, const flecs::entity& Entity, const flecs::entity& Parent, const FTransform& RelativeTransform = FTransform::Identity);
+	static void AttachEntityTo(const flecs::entity& Entity, const flecs::entity& Parent, const FTransform& RelativeTransform = FTransform::Identity);
 
-	static void UpdateLocalTransform(const flecs::entity& Entity, const FTransform& Transform);
+	static void UpdateLocalTransform(const FFlecsTransform& parent_transform, const FFlecsTransform& self_transform, FFlecsAttachedTo& local_transform);
+
+	static void RegisterGlobalTransformSystem(const flecs::world& FlecsWorld);
+};
+
+REG_FLECS_COMPONENT(FFlecsGlobalTransform)
+USTRUCT(BlueprintType)
+struct FFlecsGlobalTransform
+{
+	GENERATED_BODY()
+
+	const FTransform& get() const { return Value; }
+	
+private:
+	UPROPERTY(EditAnywhere)
+	FTransform Value;
+
+	friend struct FlecsTransformUtils;
 };
 
 REG_FLECS_COMPONENT_IMPL(FFlecsAttachedTo, false)
@@ -64,7 +81,7 @@ struct FFlecsTransform
 	FQuat get_rotation() const { return Value.GetRotation(); }
 	FVector get_unit_axis(const EAxis::Type axis) const { return Value.GetUnitAxis(axis); }
 	
-private:
+//private:
 	UPROPERTY(EditAnywhere)
 	FTransform Value = FTransform::Identity;
 	
