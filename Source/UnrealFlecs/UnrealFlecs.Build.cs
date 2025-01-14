@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-using System.IO;
 using UnrealBuildTool;
 
 public class UnrealFlecs : ModuleRules
@@ -16,7 +15,6 @@ public class UnrealFlecs : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
-			"StructUtils",
 			"Json",
 			"JsonUtilities"
 		});

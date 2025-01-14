@@ -2,7 +2,7 @@
 
 #include "flecs.h"
 #include "JsonObjectConverter.h"
-#include "StructView.h"
+#include "StructUtils/StructView.h"
 #include "Templates/Function.h"
 
 struct UNREALFLECS_API FFlecsTypeRegistry

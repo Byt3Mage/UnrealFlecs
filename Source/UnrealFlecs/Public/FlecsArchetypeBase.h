@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "FlecsTypeRegistry.h"
 #include "InstancedStruct.h"
+#include "StructUtils/InstancedStruct.h"
 
 #include "FlecsArchetypeBase.generated.h"
 

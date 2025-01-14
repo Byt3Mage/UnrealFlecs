@@ -11,9 +11,10 @@ struct FFlecsEntityHandle
 	FFlecsEntityHandle() = default;
 	
 	//FFlecsEntityHandle(const uint64 id) : Value(id), FlecsWorld(nullptr) {}
-	FFlecsEntityHandle(const flecs::entity& Entity) : Value(Entity), FlecsWorld(Entity.world()){}
-
-	static const UNREALFLECS_API FFlecsEntityHandle Null;
+	FFlecsEntityHandle(const flecs::entity& Entity)
+	: Value(Entity)
+	, FlecsWorld(Entity.world())
+	{}
 
 	operator uint64() const
 	{
