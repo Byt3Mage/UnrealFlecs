@@ -3825,6 +3825,13 @@ typedef struct ecs_iter_private_t {
     ecs_iter_cache_t cache;       /* Inline arrays to reduce allocations */
 } ecs_iter_private_t;
 
+/* Data structures that store the command queue */
+typedef struct ecs_commands_t {
+    ecs_vec_t queue;
+    ecs_stack_t stack;          /* Temp memory used by deferred commands */
+    ecs_sparse_t entries;       /* <entity, op_entry_t> - command batching */
+} ecs_commands_t;
+
 #ifdef __cplusplus
 }
 #endif
@@ -3971,6 +3978,42 @@ const char* flecs_parse_digit(
 FLECS_API
 char* flecs_to_snake_case(
     const char *str);
+
+/* Suspend/resume readonly state. To fully support implicit registration of
+ * components, it should be possible to register components while the world is
+ * in readonly mode. It is not uncommon that a component is used first from
+ * within a system, which are often ran while in readonly mode.
+ * 
+ * Suspending readonly mode is only allowed when the world is not multithreaded.
+ * When a world is multithreaded, it is not safe to (even temporarily) leave
+ * readonly mode, so a multithreaded application should always explicitly
+ * register components in advance. 
+ * 
+ * These operations also suspend deferred mode.
+ * 
+ * Functions are public to support language bindings.
+ */
+typedef struct ecs_suspend_readonly_state_t {
+    bool is_readonly;
+    bool is_deferred;
+    bool cmd_flushing;
+    int32_t defer_count;
+    ecs_entity_t scope;
+    ecs_entity_t with;
+    ecs_commands_t cmd_stack[2];
+    ecs_commands_t *cmd;
+    ecs_stage_t *stage;
+} ecs_suspend_readonly_state_t;
+
+FLECS_API
+ecs_world_t* flecs_suspend_readonly(
+    const ecs_world_t *world,
+    ecs_suspend_readonly_state_t *state);
+
+FLECS_API
+void flecs_resume_readonly(
+    ecs_world_t *world,
+    ecs_suspend_readonly_state_t *state);
 
 FLECS_DBG_API
 int32_t flecs_table_observed_count(
@@ -5824,17 +5867,11 @@ void ecs_run_aperiodic(
 
 /** Used with ecs_delete_empty_tables(). */
 typedef struct ecs_delete_empty_tables_desc_t {
-    /** Optional component filter for the tables to evaluate. */
-    ecs_id_t id;
-
     /** Free table data when generation > clear_generation. */
     uint16_t clear_generation;
 
     /** Delete table when generation > delete_generation. */
     uint16_t delete_generation;
-
-    /** Minimum number of component ids the table should have. */
-    int32_t min_id_count;
 
     /** Amount of time operation is allowed to spend. */
     double time_budget_seconds;
@@ -25511,20 +25548,6 @@ struct entity_builder : entity_view {
      * Emplace constructs a component in the storage, which prevents calling the
      * destructor on the value passed into the function.
      *
-     * Emplace attempts the following signatures to construct the component:
-     *
-     * @code
-     * T{Args...}
-     * T{flecs::entity, Args...}
-     * @endcode
-     *
-     * If the second signature matches, emplace will pass in the current entity 
-     * as argument to the constructor, which is useful if the component needs
-     * to be aware of the entity to which it has been added.
-     *
-     * Emplace may only be called for components that have not yet been added
-     * to the entity.
-     *
      * @tparam T the component to emplace
      * @param args The arguments to pass to the constructor of T
      */
@@ -26656,6 +26679,8 @@ private:
     static void invoke_callback(
         ecs_iter_t *iter, const Func& func, size_t i, Args... comps) 
     {
+        ecs_assert(iter->entities != nullptr, ECS_INVALID_PARAMETER, 
+            "query does not return entities ($this variable is not populated)");
         func(flecs::entity(iter->world, iter->entities[i]),
             (ColumnType< remove_reference_t<Components> >(iter, comps, i)
                 .get_row())...);
@@ -30572,12 +30597,19 @@ struct query_base {
 
     query_base(const query_base& obj) {
         this->query_ = obj.query_;
-        flecs_poly_claim(this->query_);
+        if (this->query_)
+        {
+            flecs_poly_claim(this->query_);
+        }
     }
 
     query_base& operator=(const query_base& obj) {
+        this->~query_base();
         this->query_ = obj.query_;
-        flecs_poly_claim(this->query_);
+        if (this->query_)
+        {
+            flecs_poly_claim(this->query_);
+        }
         return *this; 
     }
 
