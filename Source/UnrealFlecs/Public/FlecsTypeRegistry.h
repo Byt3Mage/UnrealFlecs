@@ -157,16 +157,16 @@ private:
 		{
 			FFlecsTypeRegistry& Registry = FFlecsTypeRegistry::Get();
 			
-			Registry.add_component_id(Struct, &get_flecs_id);
-			Registry.add_entity_set_fn(Struct, &set_on_entity);
-			Registry.add_entity_add_fn(Struct, &add_to_entity);
-			Registry.add_entity_get_fn(Struct, &get_from_entity);
+			Registry.add_component_id(Struct, &GetFlecsId);
+			Registry.add_entity_set_fn(Struct, &SetOnEntity);
+			Registry.add_entity_add_fn(Struct, &AddToEntity);
+			Registry.add_entity_get_fn(Struct, &GetFromEntity);
 		}
 		
 		UE_LOG(LogTemp, Warning, TEXT("Flecs component %s registered"), *Name);
 	}
 	
-	static void set_on_entity(flecs::entity& E, const FConstStructView View)
+	static void SetOnEntity(const flecs::entity& E, const FConstStructView View)
 	{
 		if (const T* Data = View.GetPtr<const T>())
 		{
@@ -174,12 +174,12 @@ private:
 		}
 	}
 
-	static void add_to_entity(flecs::entity& E)
+	static void AddToEntity(const flecs::entity& E)
 	{
 		E.add<T>();
 	}
 
-	static FConstStructView get_from_entity(const flecs::entity& E)
+	static FConstStructView GetFromEntity(const flecs::entity& E)
 	{
 		if (const T* component = E.get<T>())
 		{
@@ -189,7 +189,7 @@ private:
 		return FConstStructView();
 	}
 
-	static flecs::id get_flecs_id(const flecs::world& FlecsWorld)
+	static flecs::id GetFlecsId(const flecs::world& FlecsWorld)
 	{
 		return FlecsWorld.id<T>();
 	}

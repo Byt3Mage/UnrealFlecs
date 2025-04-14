@@ -110,6 +110,16 @@
 #endif
 #endif
 
+/** @def FLECS_DEBUG_INFO
+ * Adds additional debug information to internal data structures. Necessary when
+ * using natvis.
+ */
+#ifdef FLECS_DEBUG
+#ifndef FLECS_DEBUG_INFO
+#define FLECS_DEBUG_INFO
+#endif
+#endif
+
 /* Tip: if you see weird behavior that you think might be a bug, make sure to
  * test with the FLECS_DEBUG or FLECS_SANITIZE flags enabled. There's a good
  * chance that this gives you more information about the issue! */
@@ -146,6 +156,15 @@
  */
 // #define FLECS_CPP_NO_AUTO_REGISTRATION
 
+/** @def FLECS_CPP_NO_ENUM_REFLECTION 
+ * When set, the C++ API will not attempt to discover and register enum 
+ * constants for registered enum components. This will cause C++ APIs that 
+ * accept enum constants to not work.
+ * Disabling this feature can significantly improve compile times and reduces
+ * the RAM footprint of an application.
+ */
+// #define FLECS_CPP_NO_ENUM_REFLECTION
+
 /** @def FLECS_CUSTOM_BUILD
  * This macro lets you customize which addons to build flecs with.
  * Without any addons Flecs is just a minimal ECS storage, but addons add
@@ -181,7 +200,7 @@
 // #define FLECS_C           /**< C API convenience macros, always enabled */
 #define FLECS_CPP            /**< C++ API */
 #define FLECS_DOC            /**< Document entities & components */
-// #define FLECS_JOURNAL     /**< Journaling addon (disabled by default) */
+// #define FLECS_JOURNAL     /**< Journaling addon */
 #define FLECS_JSON           /**< Parsing JSON to/from component values */
 #define FLECS_HTTP           /**< Tiny HTTP server for connecting to remote UI */
 #define FLECS_LOG            /**< When enabled ECS provides more detailed logs */
@@ -189,9 +208,11 @@
 #define FLECS_METRICS        /**< Expose component data as statistics */
 #define FLECS_MODULE         /**< Module support */
 #define FLECS_OS_API_IMPL    /**< Default implementation for OS API */
-// #define FLECS_PERF_TRACE  /**< Enable performance tracing (disabled by default) */
+// #define FLECS_PERF_TRACE  /**< Enable performance tracing */
 #define FLECS_PIPELINE       /**< Pipeline support */
 #define FLECS_REST           /**< REST API for querying application data */
+#define FLECS_PARSER         /**< Utilities for script and query DSL parsers */
+#define FLECS_QUERY_DSL      /**< Flecs query DSL parser */
 #define FLECS_SCRIPT         /**< Flecs entity notation language */
 // #define FLECS_SCRIPT_MATH /**< Math functions for flecs script (may require linking with libm) */
 #define FLECS_SYSTEM         /**< System support */
@@ -573,6 +594,8 @@ extern "C" {
 
 #if defined(_WIN32) || defined(_MSC_VER)
 #define ECS_TARGET_WINDOWS
+#elif defined(__COSMOCC__)
+#define ECS_TARGET_POSIX
 #elif defined(__ANDROID__)
 #define ECS_TARGET_ANDROID
 #define ECS_TARGET_POSIX
@@ -981,14 +1004,6 @@ typedef struct ecs_allocator_t ecs_allocator_t;
 #define ECS_TABLE_UNLOCK(world, table)
 #endif
 
-
-////////////////////////////////////////////////////////////////////////////////
-//// Actions that drive iteration
-////////////////////////////////////////////////////////////////////////////////
-
-#define EcsIterNextYield  (0)   /* Move to next table, yield current */
-#define EcsIterYield      (-1)  /* Stay on current table, yield */
-#define EcsIterNext  (1)   /* Move to next table, don't yield */
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Convenience macros for ctor, dtor, move and copy
@@ -5152,6 +5167,8 @@ FLECS_API extern const ecs_entity_t EcsPreStore;    /**< PreStore pipeline phase
 FLECS_API extern const ecs_entity_t EcsOnStore;     /**< OnStore pipeline phase. */
 FLECS_API extern const ecs_entity_t EcsPostFrame;   /**< PostFrame pipeline phase. */
 FLECS_API extern const ecs_entity_t EcsPhase;       /**< Phase pipeline phase. */
+
+FLECS_API extern const ecs_entity_t EcsConstant;    /**< Tag added to enum/bitmask constants. */
 
 /** Value used to quickly check if component is builtin. This is used to quickly
  * filter out tables with builtin components (for example for ecs_delete()) */
@@ -10467,6 +10484,12 @@ int ecs_value_move_ctor(
 #ifdef FLECS_NO_SCRIPT
 #undef FLECS_SCRIPT
 #endif
+#ifdef FLECS_NO_PARSER
+#undef FLECS_PARSER
+#endif
+#ifdef FLECS_NO_QUERY_DSL
+#undef FLECS_QUERY_DSL
+#endif
 #ifdef FLECS_NO_SCRIPT_MATH
 #undef FLECS_SCRIPT_MATH
 #endif
@@ -13529,8 +13552,12 @@ void FlecsAlertsImport(
 #define FLECS_META
 #endif
 
-#ifndef FLECS_SCRIPT
-#define FLECS_SCRIPT
+#ifndef FLECS_DOC
+#define FLECS_DOC
+#endif
+
+#ifndef FLECS_QUERY_DSL
+#define FLECS_QUERY_DSL /* For parsing component id expressions */
 #endif
 
 #ifndef FLECS_JSON_H
@@ -14371,6 +14398,21 @@ void FlecsScriptMathImport(
 
 #endif
 
+#ifdef FLECS_PARSER
+#ifdef FLECS_NO_PARSER
+#error "FLECS_NO_PARSER failed: PARSER is required by other addons"
+#endif
+#endif
+
+#ifdef FLECS_QUERY_DSL
+#ifdef FLECS_NO_QUERY_DSL
+#error "FLECS_NO_QUERY_DSL failed: QUERY_DSL is required by other addons"
+#endif
+#ifndef FLECS_PARSER
+#define FLECS_PARSER
+#endif
+#endif
+
 #ifdef FLECS_SCRIPT
 #ifdef FLECS_NO_SCRIPT
 #error "FLECS_NO_SCRIPT failed: SCRIPT is required by other addons"
@@ -14400,6 +14442,9 @@ void FlecsScriptMathImport(
 #define FLECS_DOC
 #endif
 
+#ifndef FLECS_PARSER
+#define FLECS_PARSER
+#endif
 
 #ifndef FLECS_SCRIPT_H
 #define FLECS_SCRIPT_H
@@ -15630,7 +15675,6 @@ FLECS_API extern const ecs_entity_t ecs_id(EcsVector);          /**< Id for comp
 FLECS_API extern const ecs_entity_t ecs_id(EcsOpaque);          /**< Id for component that stores reflection data for an opaque type. */
 FLECS_API extern const ecs_entity_t ecs_id(EcsUnit);            /**< Id for component that stores unit data. */
 FLECS_API extern const ecs_entity_t ecs_id(EcsUnitPrefix);      /**< Id for component that stores unit prefix data. */
-FLECS_API extern const ecs_entity_t EcsConstant;                /**< Tag added to enum/bitmask constants. */
 FLECS_API extern const ecs_entity_t EcsQuantity;                /**< Tag added to unit quantities. */
 
 /* Primitive type component ids */
@@ -17328,6 +17372,7 @@ static const flecs::entity_t Monitor = EcsMonitor;
 static const flecs::entity_t System = EcsSystem;
 static const flecs::entity_t Pipeline = ecs_id(EcsPipeline);
 static const flecs::entity_t Phase = EcsPhase;
+static const flecs::entity_t Constant = EcsConstant;
 
 /* Builtin event tags */
 static const flecs::entity_t OnAdd = EcsOnAdd;
@@ -17844,6 +17889,12 @@ struct string_view : string {
 #define FLECS_ENUM_MAX(T) _::to_constant<T, 126>::value
 #define FLECS_ENUM_MAX_COUNT (FLECS_ENUM_MAX(int) + 1)
 
+// Flag to turn off enum reflection
+#ifdef FLECS_CPP_NO_ENUM_REFLECTION
+#define FLECS_CPP_ENUM_REFLECTION_SUPPORT 0
+#endif
+
+// Test if we're using a compiler that supports the required features
 #ifndef FLECS_CPP_ENUM_REFLECTION_SUPPORT
 #if !defined(__clang__) && defined(__GNUC__)
 #if __GNUC__ > 7 || (__GNUC__ == 7 && __GNUC_MINOR__ >= 5)
@@ -19226,7 +19277,6 @@ static const flecs::entity_t F32 = ecs_id(ecs_f32_t);
 static const flecs::entity_t F64 = ecs_id(ecs_f64_t);
 static const flecs::entity_t String = ecs_id(ecs_string_t);
 static const flecs::entity_t Entity = ecs_id(ecs_entity_t);
-static const flecs::entity_t Constant = EcsConstant;
 static const flecs::entity_t Quantity = EcsQuantity;
 
 namespace meta {
@@ -26069,6 +26119,29 @@ struct entity : entity_builder<entity>
         desc.name = name;
         desc.sep = "::";
         desc.root_sep = "::";
+        id_ = ecs_entity_init(world, &desc);
+    }
+
+    /** Create a named entity.
+     * Named entities can be looked up with the lookup functions. Entity names
+     * may be scoped, where each element in the name is separated by sep.
+     * For example: "Foo.Bar". If parts of the hierarchy in the scoped name do
+     * not yet exist, they will be automatically created.
+     *
+     * @param world The world in which to create the entity.
+     * @param name The entity name.
+     * @param sep The separator to use for the scoped name.
+     * @param root_sep The separator to use for the root of the scoped name.
+     */
+    explicit entity(world_t *world, const char *name, const char *sep, const char *root_sep)
+        : entity_builder()
+    {
+        world_ = world;
+
+        ecs_entity_desc_t desc = {};
+        desc.name = name;
+        desc.sep = sep;
+        desc.root_sep = root_sep;
         id_ = ecs_entity_init(world, &desc);
     }
 
@@ -33197,8 +33270,8 @@ inline flecs::entity iter::get_var(int var_id) const {
  * Get value of a query variable for current result.
  */
 inline flecs::entity iter::get_var(const char *name) const {
-    ecs_query_iter_t *qit = &iter_->priv_.iter.query;
-    const flecs::query_t *q = qit->query;
+    const flecs::query_t *q = iter_->query;
+
     int var_id = ecs_query_find_var(q, name);
     ecs_assert(var_id != -1, ECS_INVALID_PARAMETER, name);
     return flecs::entity(iter_->world, ecs_iter_get_var(iter_, var_id));
@@ -33238,6 +33311,20 @@ inline void world::init_builtin_components() {
     this->component<Component>();
     this->component<Identifier>();
     this->component<Poly>();
+
+    /* If meta is not defined and we're using enum reflection, make sure that
+     * primitive types are registered. This makes sure we can set components of
+     * underlying_type_t<E> when registering constants. */
+#   if !defined(FLECS_META) && !defined(FLECS_CPP_NO_ENUM_REFLECTION)
+    this->component<uint8_t>("flecs::meta::u8");
+    this->component<uint16_t>("flecs::meta::u16");
+    this->component<uint32_t>("flecs::meta::u32");
+    this->component<uint64_t>("flecs::meta::u64");
+    this->component<int8_t>("flecs::meta::i8");
+    this->component<int16_t>("flecs::meta::i16");
+    this->component<int32_t>("flecs::meta::i32");
+    this->component<int64_t>("flecs::meta::i64");
+#   endif
 
 #   ifdef FLECS_SYSTEM
     _::system_init(*this);

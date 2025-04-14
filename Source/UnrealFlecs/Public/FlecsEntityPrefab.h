@@ -3,7 +3,6 @@
 #pragma once
 
 #include "flecs.h"
-#include "FlecsArchetypeBase.h"
 #include "FlecsEntityHandle.h"
 #include "FlecsEntityPrefab.generated.h"
 
@@ -14,10 +13,6 @@ class UNREALFLECS_API UFlecsEntityPrefab : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
-protected:
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta=(BaseStruct="/Script/UnrealFlecs.FlecsArchetypeBase"))
-	TArray<FInstancedStruct> SharedArchetypes;
-	
 public:
 	virtual void SetInstanceComponents(flecs::entity& Entity) const {}
 	
@@ -30,17 +25,7 @@ public:
 protected:
 	virtual flecs::entity CreatePrefab(const flecs::world& FlecsWorld) const
 	{
-		flecs::entity Prefab = FlecsWorld.prefab();
-		
-		for (const auto& Archetype : SharedArchetypes)
-		{
-			if (const auto* Trait = Archetype.GetPtr<FFlecsArchetypeBase>())
-			{
-				Trait->SetArchetypeOnEntity(Prefab);
-			}
-		}
-		
-		return Prefab;
+		return FlecsWorld.prefab();
 	}
 	
 	friend struct FFlecsPrefabRegistry;
@@ -48,36 +33,35 @@ protected:
 
 struct FFlecsPrefabRegistry
 {
-	using FAssetHandle = TSoftObjectPtr<const UFlecsEntityPrefab>;
-	using FPrefabMap = TMap<FAssetHandle, flecs::entity>;
-
-	FFlecsPrefabRegistry()
+	FFlecsPrefabRegistry(const int32 ReserveAmount)
 	{
-		Prefabs.Reserve(1000);
+		Prefabs.Reserve(ReserveAmount);
 	}
 	
-	flecs::entity GetOrCreatePrefab(const flecs::world& FlecsWorld, const UFlecsEntityPrefab* Asset)
+	flecs::entity GetOrCreate(const flecs::world& FlecsWorld, const UFlecsEntityPrefab* Asset)
 	{
 		if (!IsValid(Asset)) { return flecs::entity(); }
 
-		const FAssetHandle AssetHandle = Asset;
+		const FPrimaryAssetId AssetId = Asset->GetPrimaryAssetId();
+		
 		flecs::entity Prefab;
 		
-		if (flecs::entity* Found = Prefabs.Find(AssetHandle))
+		if (const auto* Found = Prefabs.Find(AssetId))
 		{
 			Prefab = *Found;
 		}
 
 		if (!Prefab.is_alive())
 		{
-			// Cleanup dead Prefab and create new one
-			Prefabs.Remove(AssetHandle);
-			
 			Prefab = Asset->CreatePrefab(FlecsWorld);
 
 			if (Prefab.is_alive())
 			{
-				Prefabs.Add(AssetHandle, Prefab);
+				Prefabs.Add(AssetId, Prefab);
+			}
+			else
+			{
+				Prefabs.Remove(AssetId);
 			}
 		}
 
@@ -85,5 +69,5 @@ struct FFlecsPrefabRegistry
 	}
 
 private:
-	FPrefabMap Prefabs;
+	TMap<FPrimaryAssetId, flecs::entity> Prefabs;
 };

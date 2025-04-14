@@ -12,81 +12,81 @@ struct FFlecsEntityHandle
 	
 	//FFlecsEntityHandle(const uint64 id) : Value(id), FlecsWorld(nullptr) {}
 	FFlecsEntityHandle(const flecs::entity& Entity)
-	: Value(Entity)
+	: FlecsId(Entity)
 	, FlecsWorld(Entity.world())
 	{}
 
 	operator uint64() const
 	{
-		return Value;
+		return FlecsId;
 	}
 
+	operator flecs::entity() const
+	{
+		return flecs::entity(FlecsWorld, FlecsId);
+	}
+	
 	bool IsValid() const
 	{
-		return ecs_is_valid(FlecsWorld, Value);
+		return FlecsWorld && ecs_is_valid(FlecsWorld, FlecsId);
 	}
 
 	bool IsAlive() const
 	{
-		return ecs_is_alive(FlecsWorld, Value);
-	}
-
-	FORCEINLINE flecs::entity GetEntity() const
-	{
-		return flecs::entity(FlecsWorld, Value);
+		return FlecsWorld && ecs_is_alive(FlecsWorld, FlecsId);
 	}
 
 	FORCEINLINE flecs::entity GetEntity(const flecs::world& World) const
 	{
-		return flecs::entity(World, Value);
+		return flecs::entity(World, FlecsId);
 	}
 
 	template<typename T>
 	const T* Get() const
 	{
-		return flecs::entity(FlecsWorld, Value).get<T>();
+		return flecs::entity(FlecsWorld, FlecsId).get<T>();
 	}
 
 	template<typename T>
 	T* GetMut() const
 	{
-		return flecs::entity(FlecsWorld, Value).get_mut<T>();
+		return flecs::entity(FlecsWorld, FlecsId).get_mut<T>();
 	}
 
 	template<typename T>
 	flecs::ref<T> GetRef() const
 	{
-		return flecs::entity(FlecsWorld, Value).get_ref<T>();
+		return flecs::entity(FlecsWorld, FlecsId).get_ref<T>();
 	}
 
 	template<typename T>
 	void Set(const T& Value) const
 	{
-		flecs::entity(FlecsWorld, Value).set<T>(Value);
+		flecs::set<T>(FlecsWorld, Value, Value);
 	}
 
 	template<typename T>
 	void Set(T&& Value) const
 	{
-		flecs::entity(FlecsWorld, Value).set<T>(FLECS_FWD(Value));
+		flecs::set<T>(FlecsWorld, FlecsId, FLECS_FWD(Value));
 	}
 	
 	template<typename T>
 	bool Has() const
 	{
-		return flecs::entity(FlecsWorld, Value).has<T>();
+		return flecs::entity(FlecsWorld, FlecsId).has<T>();
 	}
 
 	template<typename T>
 	bool Has(const flecs::entity& Second) const
 	{
-		return flecs::entity(FlecsWorld, Value).has<T>(Second);
+		return flecs::entity(FlecsWorld, FlecsId).has<T>(Second);
 	}
 
 	template <typename First, typename Second>
 	bool Has() const
 	{
-		return flecs::entity(FlecsWorld, Value).has<First, Second>();
+		return flecs::entity(FlecsWorld, FlecsId).has<First, Second>();
 	}
 
 	flecs::world World() const
@@ -96,7 +96,7 @@ struct FFlecsEntityHandle
 	
 private:
 	UPROPERTY()
-	uint64 Value = 0;
+	uint64 FlecsId = 0;
 
-	flecs::world FlecsWorld;
+	flecs::world_t *FlecsWorld;
 };

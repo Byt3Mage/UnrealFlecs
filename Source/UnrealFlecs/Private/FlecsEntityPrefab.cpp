@@ -6,7 +6,7 @@ flecs::entity UFlecsEntityPrefab::CreateInstance(const flecs::world& FlecsWorld,
 {
 	flecs::entity Entity = FlecsWorld.entity();
 
-	if (flecs::entity Prefab = Registry.GetOrCreatePrefab(FlecsWorld, this))
+	if (const flecs::entity Prefab = Registry.GetOrCreate(FlecsWorld, this))
 	{
 		Entity = FlecsWorld.entity().is_a(Prefab);
 	}
@@ -22,7 +22,7 @@ TArray<flecs::entity> UFlecsEntityPrefab::BatchCreateInstances(const flecs::worl
 {
 	TArray<flecs::entity> Instances;
 	
-	if (flecs::entity Prefab = Registry.GetOrCreatePrefab(FlecsWorld, this))
+	if (const flecs::entity Prefab = Registry.GetOrCreate(FlecsWorld, this))
 	{
 		Instances.Reserve(Count);
 		
@@ -41,7 +41,7 @@ TArray<FFlecsEntityHandle> UFlecsEntityPrefab::BatchCreateInstanceHandles(const 
 {
 	TArray<FFlecsEntityHandle> Instances;
 	
-	if (flecs::entity Prefab = Registry.GetOrCreatePrefab(FlecsWorld, this))
+	if (flecs::entity Prefab = Registry.GetOrCreate(FlecsWorld, this))
 	{
 		Instances.Reserve(Count);
 		
