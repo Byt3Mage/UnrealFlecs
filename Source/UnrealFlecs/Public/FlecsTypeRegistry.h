@@ -2,22 +2,22 @@
 
 #include "flecs.h"
 #include "JsonObjectConverter.h"
+#include "UnrealFlecs.h"
+#include "Logging/StructuredLog.h"
 #include "StructUtils/StructView.h"
 #include "Templates/Function.h"
 
 struct UNREALFLECS_API FFlecsTypeRegistry
 {
-	using RegisterFn = TFunction<void (const flecs::world&)>;
-	using SetFn = TFunction<void (flecs::entity&, const FConstStructView)>;
-	using AddFn = TFunction<void (flecs::entity&)>;
-	using GetFn = TFunction<FConstStructView (flecs::entity&)>;
-	using IDFn = TFunction<flecs::id (const flecs::world&)>;
+	using RegisterFn = void(*)(const flecs::world&);
+	using SetFn = void(*)(const flecs::entity&, const FConstStructView);
+	using AddFn = void(*)(const flecs::entity&);
+	using GetFn = FConstStructView(*)(const flecs::entity&);
+	using IDFn  = flecs::id(*)(const flecs::world&);
 
 	FFlecsTypeRegistry() = default;
-	
 	FFlecsTypeRegistry(const FFlecsTypeRegistry&) = delete;
 	FFlecsTypeRegistry(FFlecsTypeRegistry&&) = delete;
-
 	FFlecsTypeRegistry& operator=(const FFlecsTypeRegistry&) = delete;
 	FFlecsTypeRegistry& operator=(FFlecsTypeRegistry&&) = delete;
 	
@@ -27,62 +27,65 @@ struct UNREALFLECS_API FFlecsTypeRegistry
 		return Instance;
 	}
 
-	const TArray<RegisterFn>& get_register_fns() const { return m_register_fns; }
+	auto GetRegisterFns() const { return RegisterFuncs.values(); }
 	
-	void add_register_fn(RegisterFn Func)
+	void InsertRegisterFn(const UScriptStruct* Type, RegisterFn Func)
 	{
-		m_register_fns.Emplace(Func);
+		RegisterFuncs.insert_or_assign(Type, Func);
 	}
 	
-	void add_entity_set_fn(const UScriptStruct* Type, SetFn Func)
+	void InsertSetFn(const UScriptStruct* Type, SetFn Func)
 	{
-		m_entity_set_fns.Emplace(Type, Func);
+		SetFuncs.insert_or_assign(Type, Func);
 	}
 
-	void add_entity_add_fn(const UScriptStruct* Type, AddFn Func)
+	void InsertAddFn(const UScriptStruct* Type, AddFn Func)
 	{
-		m_entity_add_fns.Emplace(Type, Func);
+		AddFuncs.insert_or_assign(Type, Func);
 	}
 
-	void add_entity_get_fn(const UScriptStruct* Type, GetFn Func)
+	void InsertGetFn(const UScriptStruct* Type, GetFn Func)
 	{
-		m_entity_get_fns.Emplace(Type, Func);
+		GetFuncs.insert_or_assign(Type, Func);
 	}
 
-	void add_component_id(const UScriptStruct* Type, IDFn Func)
+	void InsertIdFn(const UScriptStruct* Type, IDFn Func)
 	{
-		m_component_ids.Emplace(Type, Func);
+		Ids.insert_or_assign(Type, Func);
 	}
 
-	const SetFn* find_set_fn(const UScriptStruct* Type)
+	const SetFn* FindSetFn(const UScriptStruct* Type) const
 	{
-		return m_entity_set_fns.Find(Type);
+		const auto It = SetFuncs.find(Type);
+		return It != SetFuncs.end() ? &It->second : nullptr;
 	}
 
-	const AddFn* find_add_fn(const UScriptStruct* Type)
+	const AddFn* FindAddFn(const UScriptStruct* Type) const
 	{
-		return m_entity_add_fns.Find(Type);
+		const auto It = AddFuncs.find(Type);
+		return It != AddFuncs.end() ? &It->second : nullptr;
+	}
+ 
+	const GetFn* FindGetFn(const UScriptStruct* Type) const
+	{
+		const auto It = GetFuncs.find(Type);
+		return It != GetFuncs.end() ? &It->second : nullptr;
 	}
 
-	const GetFn* find_get_fn(const UScriptStruct* Type)
+	flecs::id FindId(const UScriptStruct* Type, const flecs::world& FlecsWorld) const
 	{
-		return m_entity_get_fns.Find(Type);
-	}
-
-	flecs::id find_id(const UScriptStruct* Type, const flecs::world& FlecsWorld)
-	{
-		if (IDFn* Func = m_component_ids.Find(Type))
+		if (const auto It = Ids.find(Type); It != Ids.end())
 		{
-			return (*Func)(FlecsWorld);
+			return (It->second)(FlecsWorld);
 		}
 
 		return flecs::id();
 	}
 	
-	// Use sparingly might be costly on performance
+	// Use sparingly, might be costly on performance
 	const UScriptStruct* get_script_struct(const flecs::world& FlecsWorld, const flecs::id id) const
 	{
-		for (auto& [Struct, Fn] : m_component_ids)
+		for (auto& [Struct, Fn] : Ids)
 		{
 			if (Fn(FlecsWorld) == id)
 			{
@@ -94,11 +97,11 @@ struct UNREALFLECS_API FFlecsTypeRegistry
 	}
 
 private:
-	TArray<RegisterFn> m_register_fns;
-	TMap<const UScriptStruct*, SetFn> m_entity_set_fns;
-	TMap<const UScriptStruct*, AddFn> m_entity_add_fns;
-	TMap<const UScriptStruct*, GetFn> m_entity_get_fns;
-	TMap<const UScriptStruct*, IDFn> m_component_ids;
+	UnrealFlecs::HashMap<const UScriptStruct*, RegisterFn> RegisterFuncs;
+	UnrealFlecs::HashMap<const UScriptStruct*, SetFn> SetFuncs;
+	UnrealFlecs::HashMap<const UScriptStruct*, AddFn> AddFuncs;
+	UnrealFlecs::HashMap<const UScriptStruct*, GetFn> GetFuncs;
+	UnrealFlecs::HashMap<const UScriptStruct*, IDFn> Ids;
 };
 
 template<typename T>
@@ -131,7 +134,7 @@ struct FRegisterFlecsComponent
 	{
 		if (!IsRegistered)
 		{
-			FFlecsTypeRegistry::Get().add_register_fn(&RegisterComponent);
+			FFlecsTypeRegistry::Get().InsertRegisterFn(TBaseStructure<T>::Get(), &RegisterComponent);
 		}
 		else
 		{
@@ -157,13 +160,13 @@ private:
 		{
 			FFlecsTypeRegistry& Registry = FFlecsTypeRegistry::Get();
 			
-			Registry.add_component_id(Struct, &GetFlecsId);
-			Registry.add_entity_set_fn(Struct, &SetOnEntity);
-			Registry.add_entity_add_fn(Struct, &AddToEntity);
-			Registry.add_entity_get_fn(Struct, &GetFromEntity);
+			Registry.InsertIdFn (Struct, &GetFlecsId);
+			Registry.InsertSetFn(Struct, &SetOnEntity);
+			Registry.InsertAddFn(Struct, &AddToEntity);
+			Registry.InsertGetFn(Struct, &GetFromEntity);
 		}
 		
-		UE_LOG(LogTemp, Warning, TEXT("Flecs component %s registered"), *Name);
+		UE_LOGFMT(LogTemp, Warning, "Flecs component {Comp} registered", ("Comp", Name));
 	}
 	
 	static void SetOnEntity(const flecs::entity& E, const FConstStructView View)
@@ -181,12 +184,7 @@ private:
 
 	static FConstStructView GetFromEntity(const flecs::entity& E)
 	{
-		if (const T* component = E.get<T>())
-		{
-			return FConstStructView(TBaseStructure<T>::Get(), reinterpret_cast<const uint8*>(component));
-		}
-
-		return FConstStructView();
+		return FConstStructView::Make(E.get<T>());
 	}
 
 	static flecs::id GetFlecsId(const flecs::world& FlecsWorld)

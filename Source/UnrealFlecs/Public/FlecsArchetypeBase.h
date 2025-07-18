@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "FlecsTypeRegistry.h"
-#include "InstancedStruct.h"
 #include "StructUtils/InstancedStruct.h"
 
 #include "FlecsArchetypeBase.generated.h"
@@ -24,9 +23,9 @@ struct FFlecsAssortedComponents : public FFlecsArchetypeBase
 
 	virtual void SetArchetypeOnEntity(flecs::entity& Entity) const override
 	{
-		for (const FInstancedStruct& Comp : Components)
+		for (const auto& Comp : Components)
 		{
-			if (auto* Fn = FFlecsTypeRegistry::Get().find_set_fn(Comp.GetScriptStruct()))
+			if (auto* Fn = FFlecsTypeRegistry::Get().FindSetFn(Comp.GetScriptStruct()))
 			{
 				(*Fn)(Entity, Comp);
 			}
@@ -46,7 +45,7 @@ struct FFlecsAssortedTags : public FFlecsArchetypeBase
 	{
 		for (const auto& Tag : Tags)
 		{
-			if (auto* Fn = FFlecsTypeRegistry::Get().find_add_fn(Tag))
+			if (auto* Fn = FFlecsTypeRegistry::Get().FindAddFn(Tag))
 			{
 				(*Fn)(Entity);
 			}
