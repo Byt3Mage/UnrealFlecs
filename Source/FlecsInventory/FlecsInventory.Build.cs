@@ -6,24 +6,17 @@ public class FlecsInventory : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         bUseUnity = false;
-        CppStandard = CppStandardVersion.Latest;
+        CppStandard = CppStandardVersion.Cpp20;
 
         PublicDependencyModuleNames.AddRange(
             [
                 "Core",
-                "GameplayTags",
-                "UnrealFlecs"
-            ]
-        );
-
-        PrivateDependencyModuleNames.AddRange(
-            [
                 "CoreUObject",
                 "Engine",
-                "Slate",
-                "SlateCore",
+                "GameplayTags",
+                "UnrealFlecs",
                 "Json",
-                "JsonUtilities",
+                "JsonUtilities"
             ]
         );
     }

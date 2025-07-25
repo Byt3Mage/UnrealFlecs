@@ -1,9 +1,16 @@
 #pragma once
-
 #include "GameplayTagContainer.h"
-#include "InventoryItem.generated.h"
+#include "FlecsInventoryComponents.generated.h"
 
-class UFlecsItemDescription;
+namespace flecs
+{
+	struct world;
+}
+
+struct FlecsInventoryComponents
+{
+	FlecsInventoryComponents(flecs::world& FlecsWorld);
+};
 
 USTRUCT(BlueprintType)
 struct FLECSINVENTORY_API FFlecsInventoryItemSize
@@ -19,7 +26,6 @@ struct FLECSINVENTORY_API FFlecsInventoryItemSize
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	uint8 Height = 1;
-
 	
 	/** @return the item size with the width and height swapped */
 	FFlecsInventoryItemSize GetRotated() const { return FFlecsInventoryItemSize(Height, Width); }
@@ -64,5 +70,5 @@ struct FLECSINVENTORY_API FContainedBy
 	FName Container = NAME_None;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	int32 Stack = INDEX_NONE;
+	int32 StackId = INDEX_NONE;
 };

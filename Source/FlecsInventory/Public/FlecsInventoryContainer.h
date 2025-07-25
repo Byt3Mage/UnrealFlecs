@@ -1,21 +1,18 @@
 #pragma once
-
-#include "flecs.h"
+#include "FlecsInventoryComponents.h"
 #include "FlecsTypeRegistry.h"
 #include "GameplayTagContainer.h"
-#include "InventoryItem.h"
-#include "UnrealFlecs.h"
-#include "InventoryContainer.generated.h"
+#include "FlecsInventoryContainer.generated.h"
 
 UENUM(BlueprintType)
-enum class EInventoryContainerType : uint8
+enum class EFlecsInventoryContainerType : uint8
 {
 	Storage,
 	AttachmentSlot
 };
 
 USTRUCT(BlueprintType)
-struct FLECSINVENTORY_API FContainerStack
+struct FLECSINVENTORY_API FFlecsInventoryItemStack
 {
 	GENERATED_BODY()
 	
@@ -29,12 +26,11 @@ struct FLECSINVENTORY_API FContainerStack
 	int32 MaxStackAmount = 1;
 
 	UnrealFlecs::HashSet<int32> OccupiedSlots = {};
-
 	UnrealFlecs::HashSet<flecs::entity> Items = {};
 };
 
 USTRUCT(BlueprintType)
-struct FLECSINVENTORY_API FInventoryContainer
+struct FLECSINVENTORY_API FFlecsInventoryContainer
 {
 	GENERATED_BODY()
 
@@ -42,7 +38,7 @@ struct FLECSINVENTORY_API FInventoryContainer
 	FName Name = NAME_None;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
-	EInventoryContainerType Type = EInventoryContainerType::Storage;
+	EFlecsInventoryContainerType Type = EFlecsInventoryContainerType::Storage;
 	
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	int32 NumberOfRows = 1;
@@ -59,40 +55,35 @@ struct FLECSINVENTORY_API FInventoryContainer
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	FName AttachmentSocket = NAME_None;
 	
-	UnrealFlecs::HashMap<int32, FContainerStack> Stacks = {};
+	UnrealFlecs::HashMap<int32, FFlecsInventoryItemStack> Stacks = {};
 
 	bool CanAcceptItem(const FGameplayTag& ItemTag) const;
 	
 	bool FindEmptySlotsAtIndex(const int32 Index, const FFlecsInventoryItemSize& ItemSize,
 		const UnrealFlecs::HashSet<int32>& Occupied, UnrealFlecs::HashSet<int32>& OutSlots) const;
+		
 	int32 FindEmptyStack(const FFlecsInventoryItemSize& ItemSize, const UnrealFlecs::HashSet<int32>& Occupied,
 		UnrealFlecs::HashSet<int32>& OutSlots, bool& IsRotated) const;
 	
-	bool AddItem   (const flecs::entity& Container, const flecs::entity& Item);
-	void RemoveItem(const flecs::entity& Container, const flecs::entity& Item);
+	bool AddItem   (const flecs::entity& Inventory, const flecs::entity& Item);
+	void RemoveItem(const flecs::entity& Inventory, const flecs::entity& Item);
 	
 private:
-	bool StoreItem(const flecs::entity& Container, const flecs::entity& Item, const FFlecsInventoryItemInfo& ItemInfo);
-	bool EquipItem(const flecs::entity& Container, const flecs::entity& Item, const FFlecsInventoryItemInfo& ItemInfo);
+	bool StoreItem(const flecs::entity& Inventory, const flecs::entity& Item, const FFlecsInventoryItemInfo& ItemInfo);
+	bool EquipItem(const flecs::entity& Inventory, const flecs::entity& Item, const FFlecsInventoryItemInfo& ItemInfo);
 };
 
-REG_FLECS_COMPONENT(FFlecsInventoryComponent)
 USTRUCT(BlueprintType)
 struct FLECSINVENTORY_API FFlecsInventoryComponent
 {
 	GENERATED_BODY()
 	
-	FInventoryContainer* FindContainer(const FName& ContainerName)
-	{
-		return Containers.Find(ContainerName);
-	}
-
-	const FInventoryContainer* FindContainer(const FName& ContainerName) const
-	{
-		return Containers.Find(ContainerName);
-	}
-	
-private:
 	UPROPERTY(EditAnywhere)
-	TMap<FName, FInventoryContainer> Containers;
+	TMap<FName, FFlecsInventoryContainer> Containers;
 };
+
+namespace FlecsInventory
+{
+	FLECSINVENTORY_API bool AddItemToInventory(flecs::entity Item, flecs::entity Inventory);
+	FLECSINVENTORY_API bool AddItemToInventory(flecs::entity Item, flecs::entity Inventory, FName ContainerName);
+}

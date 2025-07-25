@@ -10,7 +10,7 @@ struct FFlecsArchetypeBase
 	GENERATED_BODY()
 	
 	virtual ~FFlecsArchetypeBase() = default;
-	virtual void SetArchetypeOnEntity(flecs::entity& Entity) const {}
+	virtual void SetArchetypeOnEntity(flecs::entity Entity) const {}
 };
 
 USTRUCT(BlueprintType)
@@ -21,7 +21,7 @@ struct FFlecsAssortedComponents : public FFlecsArchetypeBase
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TArray<FInstancedStruct> Components;
 
-	virtual void SetArchetypeOnEntity(flecs::entity& Entity) const override
+	virtual void SetArchetypeOnEntity(const flecs::entity Entity) const override
 	{
 		for (const auto& Comp : Components)
 		{
@@ -41,7 +41,7 @@ struct FFlecsAssortedTags : public FFlecsArchetypeBase
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TArray<TObjectPtr<const UScriptStruct>> Tags;
 
-	virtual void SetArchetypeOnEntity(flecs::entity& Entity) const override
+	virtual void SetArchetypeOnEntity(const flecs::entity Entity) const override
 	{
 		for (const auto& Tag : Tags)
 		{
