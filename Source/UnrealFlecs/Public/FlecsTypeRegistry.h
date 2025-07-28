@@ -192,7 +192,33 @@ private:
 		return FlecsWorld.id<T>();
 	}
 };
- 
+
+using FRegFn = TFunction<void()>;
+
+class FFlecsComponentQueue
+{
+public:
+	static TArray<FRegFn>& Get()
+	{
+		static TArray<FRegFn> Queue;
+		return Queue;
+	}
+
+	static void Enqueue(FRegFn Fn)
+	{
+		Get().Add(Fn);
+	}
+
+	static void Flush()
+	{
+		for (FRegFn& Fn : Get())
+		{
+			Fn();
+		}
+		Get().Empty();
+	}
+};
+
 /*
  * Performs a plain component registration and stores its UScriptStruct type information.
  * If set, implements the unreal engine Json serializer for the component.

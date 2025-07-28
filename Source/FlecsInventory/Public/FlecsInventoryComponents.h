@@ -1,4 +1,5 @@
 #pragma once
+#include "FlecsTypeRegistry.h"
 #include "GameplayTagContainer.h"
 #include "FlecsInventoryComponents.generated.h"
 
@@ -7,7 +8,7 @@ namespace flecs
 	struct world;
 }
 
-struct FlecsInventoryComponents
+struct FLECSINVENTORY_API FlecsInventoryComponents
 {
 	FlecsInventoryComponents(flecs::world& FlecsWorld);
 };
@@ -61,6 +62,8 @@ struct FLECSINVENTORY_API FFlecsInventoryItemInfo
 	int32 MaxStackAmount = 1;
 };
 
+
+//REG_FLECS_COMPONENT(FContainedBy)
 USTRUCT(BlueprintType)
 struct FLECSINVENTORY_API FContainedBy
 {

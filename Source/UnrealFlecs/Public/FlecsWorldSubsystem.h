@@ -25,6 +25,16 @@ class UNREALFLECS_API UFlecsWorldSubsystem : public UTickableWorldSubsystem
 	virtual void Deinitialize() override;
 
 protected:
+	flecs::world& GetFlecsWorld();
+	
+	const flecs::world& GetFlecsWorld() const;
+	
+	/**
+	 * Call on Tick to progress the flecs world pipeline.
+	 * @param DeltaTime Update rate of flecs world. Pass 0 to make flecs use internal DeltaTime.
+	 */
+	FORCEINLINE void TickFlecsWorld(const float DeltaTime) const;
+	
 	/**
 	 * Called after the flecs world is created.
 	 * Overriding classes can import modules here.

@@ -73,6 +73,7 @@ private:
 	bool EquipItem(const flecs::entity& Inventory, const flecs::entity& Item, const FFlecsInventoryItemInfo& ItemInfo);
 };
 
+//REG_FLECS_COMPONENT(FFlecsInventoryComponent)
 USTRUCT(BlueprintType)
 struct FLECSINVENTORY_API FFlecsInventoryComponent
 {

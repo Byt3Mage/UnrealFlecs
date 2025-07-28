@@ -13,8 +13,24 @@ void UFlecsWorldSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UFlecsWorldSubsystem::Deinitialize()
 {
+	OnDestroyFlecsWorld(*FlecsWorld);
 	FlecsWorld = nullptr;
 	Super::Deinitialize();
+}
+
+const flecs::world& UFlecsWorldSubsystem::GetFlecsWorld() const
+{
+	return *FlecsWorld;
+}
+
+flecs::world& UFlecsWorldSubsystem::GetFlecsWorld()
+{
+	return *FlecsWorld;
+}
+
+void UFlecsWorldSubsystem::TickFlecsWorld(const float DeltaTime) const
+{
+	FlecsWorld->progress(DeltaTime);
 }
 
 void UFlecsWorldSubsystem::OnCreateFlecsWorld(flecs::world& Flecs)
