@@ -11,6 +11,7 @@ enum class EFlecsInventoryContainerType : uint8
 	AttachmentSlot
 };
 
+REG_FLECS_COMPONENT(FFlecsInventoryItemStack)
 USTRUCT(BlueprintType)
 struct FLECSINVENTORY_API FFlecsInventoryItemStack
 {
@@ -25,8 +26,8 @@ struct FLECSINVENTORY_API FFlecsInventoryItemStack
 	UPROPERTY()
 	int32 MaxStackAmount = 1;
 
-	UnrealFlecs::HashSet<int32> OccupiedSlots = {};
-	UnrealFlecs::HashSet<flecs::entity> Items = {};
+	UFlecs::HashSet<int32> OccupiedSlots = {};
+	UFlecs::HashSet<flecs::entity> Items = {};
 };
 
 USTRUCT(BlueprintType)
@@ -46,24 +47,24 @@ struct FLECSINVENTORY_API FFlecsInventoryContainer
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	int32 NumberOfColumns = 1;
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere)
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta=(Categories="Inventory.Item"))
 	FGameplayTagContainer AcceptableItems = {};
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere)
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta=(Categories="Inventory.Item"))
 	FGameplayTagContainer UnacceptableItems = {};
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	FName AttachmentSocket = NAME_None;
 	
-	UnrealFlecs::HashMap<int32, FFlecsInventoryItemStack> Stacks = {};
+	UFlecs::HashMap<int32, FFlecsInventoryItemStack> Stacks = {};
 
 	bool CanAcceptItem(const FGameplayTag& ItemTag) const;
 	
 	bool FindEmptySlotsAtIndex(const int32 Index, const FFlecsInventoryItemSize& ItemSize,
-		const UnrealFlecs::HashSet<int32>& Occupied, UnrealFlecs::HashSet<int32>& OutSlots) const;
+		const UFlecs::HashSet<int32>& Occupied, UFlecs::HashSet<int32>& OutSlots) const;
 		
-	int32 FindEmptyStack(const FFlecsInventoryItemSize& ItemSize, const UnrealFlecs::HashSet<int32>& Occupied,
-		UnrealFlecs::HashSet<int32>& OutSlots, bool& IsRotated) const;
+	int32 FindEmptyStack(const FFlecsInventoryItemSize& ItemSize, const UFlecs::HashSet<int32>& Occupied,
+		UFlecs::HashSet<int32>& OutSlots, bool& IsRotated) const;
 	
 	bool AddItem   (const flecs::entity& Inventory, const flecs::entity& Item);
 	void RemoveItem(const flecs::entity& Inventory, const flecs::entity& Item);

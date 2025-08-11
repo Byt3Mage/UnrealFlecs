@@ -4,16 +4,17 @@
 #include "flecs.h"
 #include "unordered_dense.h"
 
+UNREALFLECS_API DECLARE_LOG_CATEGORY_EXTERN(LogUnrealFlecs, Log, All);
+
 class FUnrealFlecsModule : public IModuleInterface
 {
 public:
-
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 };
 
-namespace UnrealFlecs
+namespace UFlecs
 {
 	template<typename K, typename V>
 	using HashMap = ankerl::unordered_dense::map<K, V>;

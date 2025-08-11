@@ -6,7 +6,7 @@ bool FFlecsInventoryContainer::CanAcceptItem(const FGameplayTag& ItemTag) const
 }
 
 bool FFlecsInventoryContainer::FindEmptySlotsAtIndex(const int32 Index, const FFlecsInventoryItemSize& ItemSize,
-	const UnrealFlecs::HashSet<int32>& Occupied, UnrealFlecs::HashSet<int32>& OutSlots) const
+	const UFlecs::HashSet<int32>& Occupied, UFlecs::HashSet<int32>& OutSlots) const
 {
 	OutSlots.clear();
 
@@ -39,7 +39,7 @@ bool FFlecsInventoryContainer::FindEmptySlotsAtIndex(const int32 Index, const FF
 }
 
 int32 FFlecsInventoryContainer::FindEmptyStack(const FFlecsInventoryItemSize& ItemSize,
-	const UnrealFlecs::HashSet<int32>& Occupied, UnrealFlecs::HashSet<int32>& OutSlots, bool& IsRotated) const
+	const UFlecs::HashSet<int32>& Occupied, UFlecs::HashSet<int32>& OutSlots, bool& IsRotated) const
 {
 	const int32 NumSlots = NumberOfRows * NumberOfColumns;
 
@@ -114,7 +114,7 @@ void FFlecsInventoryContainer::RemoveItem(const flecs::entity& Inventory, const 
 bool FFlecsInventoryContainer::StoreItem(const flecs::entity& Inventory, const flecs::entity& Item,
 	const FFlecsInventoryItemInfo& ItemInfo)
 {
-	UnrealFlecs::HashSet<int32> Occupied; Occupied.reserve(NumberOfColumns * NumberOfRows);
+	UFlecs::HashSet<int32> Occupied; Occupied.reserve(NumberOfColumns * NumberOfRows);
 
 	for (auto&[StackId, Stack] : Stacks)
 	{
@@ -130,7 +130,7 @@ bool FFlecsInventoryContainer::StoreItem(const flecs::entity& Inventory, const f
 		Occupied.insert(Stack.OccupiedSlots.begin(), Stack.OccupiedSlots.end());
 	}
 
-	UnrealFlecs::HashSet<int32> Slots; bool IsRotated = false;
+	UFlecs::HashSet<int32> Slots; bool IsRotated = false;
 	
 	if (const int32 StackId = FindEmptyStack(ItemInfo.Size, Occupied, Slots, IsRotated); StackId != INDEX_NONE)
 	{

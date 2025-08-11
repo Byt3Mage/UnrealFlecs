@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <ranges>
+
 #include "flecs.h"
 #include "JsonObjectConverter.h"
 #include "UnrealFlecs.h"
@@ -14,6 +16,7 @@ struct UNREALFLECS_API FFlecsTypeRegistry
 	using AddFn = void(*)(const flecs::entity&);
 	using GetFn = FConstStructView(*)(const flecs::entity&);
 	using IDFn  = flecs::id(*)(const flecs::world&);
+	using EnqueuedFn = void(*)(FFlecsTypeRegistry&);
 
 	FFlecsTypeRegistry() = default;
 	FFlecsTypeRegistry(const FFlecsTypeRegistry&) = delete;
@@ -27,7 +30,18 @@ struct UNREALFLECS_API FFlecsTypeRegistry
 		return Instance;
 	}
 
-	auto GetRegisterFns() const { return RegisterFuncs.values(); }
+	static void RegisterAllTypes(const flecs::world& FlecsWorld)
+	{
+		for (const auto& Fn : Get().GetRegisterFns() | std::views::values)
+		{
+			Fn(FlecsWorld);
+		}
+	}
+	
+	auto GetRegisterFns() const -> const auto&
+	{
+		return RegisterFuncs.values();
+	}
 	
 	void InsertRegisterFn(const UScriptStruct* Type, RegisterFn Func)
 	{
@@ -83,7 +97,7 @@ struct UNREALFLECS_API FFlecsTypeRegistry
 	}
 	
 	// Use sparingly, might be costly on performance
-	const UScriptStruct* get_script_struct(const flecs::world& FlecsWorld, const flecs::id id) const
+	const UScriptStruct* GetScriptStruct(const flecs::world& FlecsWorld, const flecs::id id) const
 	{
 		for (auto& [Struct, Fn] : Ids)
 		{
@@ -95,13 +109,29 @@ struct UNREALFLECS_API FFlecsTypeRegistry
 
 		return nullptr;
 	}
+	
+	void EnqueueRegistration(EnqueuedFn Fn)
+	{
+		EnqueuedFuncs.insert(Fn);
+	}
+
+	void FlushRegistrationQueue()
+	{
+		for (const auto Fn : EnqueuedFuncs)
+		{
+			Fn(*this);
+		}
+		
+		EnqueuedFuncs.clear();
+	}
 
 private:
-	UnrealFlecs::HashMap<const UScriptStruct*, RegisterFn> RegisterFuncs;
-	UnrealFlecs::HashMap<const UScriptStruct*, SetFn> SetFuncs;
-	UnrealFlecs::HashMap<const UScriptStruct*, AddFn> AddFuncs;
-	UnrealFlecs::HashMap<const UScriptStruct*, GetFn> GetFuncs;
-	UnrealFlecs::HashMap<const UScriptStruct*, IDFn> Ids;
+	UFlecs::HashMap<const UScriptStruct*, RegisterFn> RegisterFuncs;
+	UFlecs::HashMap<const UScriptStruct*, SetFn> SetFuncs;
+	UFlecs::HashMap<const UScriptStruct*, AddFn> AddFuncs;
+	UFlecs::HashMap<const UScriptStruct*, GetFn> GetFuncs;
+	UFlecs::HashMap<const UScriptStruct*, IDFn> Ids;
+	UFlecs::HashSet<EnqueuedFn> EnqueuedFuncs;
 };
 
 template<typename T>
@@ -111,8 +141,8 @@ struct FFlecsJsonSerializer
 	{
 		FString Json;
 		FJsonObjectConverter::UStructToJsonObjectString<T>(*Data, Json);
-		
-		auto Src = StringCast<ANSICHAR>(*Json);
+
+		const auto Src = StringCast<ANSICHAR>(*Json);
 		const char* Ptr = Src.Get();
 		return s->value(flecs::String, &Ptr);
 	}
@@ -132,19 +162,17 @@ struct FRegisterFlecsComponent
 	
 	static bool Init()
 	{
-		if (!IsRegistered)
-		{
-			FFlecsTypeRegistry::Get().InsertRegisterFn(TBaseStructure<T>::Get(), &RegisterComponent);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Flecs component %s is already registered. Can not register component twice"), *Name);
-		}
-		
+		FFlecsTypeRegistry::Get().EnqueueRegistration(AddToRegistry);
 		return true;
 	}
 
 private:
+	static void AddToRegistry(FFlecsTypeRegistry& Registry)
+	{
+		Registry.InsertRegisterFn(TBaseStructure<T>::Get(), &RegisterComponent);
+		UE_LOGFMT(LogUnrealFlecs, Warning, "Flecs component {Comp} registered", ("Comp", Name));
+	}
+	
 	static void RegisterComponent(const flecs::world& FlecsWorld)
 	{
 		auto component = FlecsWorld.component<T>();
@@ -165,8 +193,6 @@ private:
 			Registry.InsertAddFn(Struct, &AddToEntity);
 			Registry.InsertGetFn(Struct, &GetFromEntity);
 		}
-		
-		UE_LOGFMT(LogTemp, Warning, "Flecs component {Comp} registered", ("Comp", Name));
 	}
 	
 	static void SetOnEntity(const flecs::entity& E, const FConstStructView View)
@@ -193,46 +219,13 @@ private:
 	}
 };
 
-using FRegFn = TFunction<void()>;
-
-class FFlecsComponentQueue
-{
-public:
-	static TArray<FRegFn>& Get()
-	{
-		static TArray<FRegFn> Queue;
-		return Queue;
-	}
-
-	static void Enqueue(FRegFn Fn)
-	{
-		Get().Add(Fn);
-	}
-
-	static void Flush()
-	{
-		for (FRegFn& Fn : Get())
-		{
-			Fn();
-		}
-		Get().Empty();
-	}
-};
-
-/*
- * Performs a plain component registration and stores its UScriptStruct type information.
- * If set, implements the unreal engine Json serializer for the component.
- * Does NOT add any flecs traits to the component.
-*/
-#define REG_FLECS_COMPONENT_IMPL(Type, bUseDefaultSerializer) \
-struct Type; \
-const FString FRegisterFlecsComponent<Type>::Name = FString(#Type); \
-const bool FRegisterFlecsComponent<Type>::UseDefaultSerializer = (bUseDefaultSerializer); \
-const bool FRegisterFlecsComponent<Type>::IsRegistered = FRegisterFlecsComponent<Type>::Init();
-
 /*
  * Performs a plain component registration and stores its UScriptStruct type information.
  * Implements the unreal engine Json serializer for the component.
  * Does NOT add any flecs traits to the component.
 */
-#define REG_FLECS_COMPONENT(Type) REG_FLECS_COMPONENT_IMPL(Type, true)
+#define REG_FLECS_COMPONENT(Type) \
+struct Type; \
+const FString FRegisterFlecsComponent<Type>::Name = FString(#Type); \
+const bool FRegisterFlecsComponent<Type>::UseDefaultSerializer = (true); \
+const bool FRegisterFlecsComponent<Type>::IsRegistered = FRegisterFlecsComponent<Type>::Init();

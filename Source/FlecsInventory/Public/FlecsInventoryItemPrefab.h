@@ -29,6 +29,9 @@ public:
 	FString Description = "";
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
+	TSoftObjectPtr<UTexture2D> Thumbnail = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
 	FFlecsInventoryItemSize Size  = 1;
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
